@@ -25,6 +25,9 @@ public class human{
 				case "left":
 					moved = game.moveLeft();
 					break;
+				case "testDown":
+					game.testDown(game.getGrid());
+					break;
 				default:
 				//do nothing
 					moved = false;

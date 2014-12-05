@@ -16,22 +16,33 @@ public class game2048 {
 		placeRandom();
 	}
 
-	public static boolean movesPossible() {
+	public static boolean movesPossible(int[][] g) {
 		for (int i = 0; i < 4; i++) {
 			for (int j = 0; j < 4; j++) {
-				if (grid[i][j] == 0)
+				if (g[i][j] == 0)
 					return true;
-				if (i > 0 && grid[i-1][j] == grid[i][j])
+				if (i > 0 && g[i-1][j] == g[i][j])
 					return true;
-				if (j > 0 && grid[i][j-1] == grid[i][j])
+				if (j > 0 && g[i][j-1] == g[i][j])
 					return true;
-				if (i < 3 && grid[i+1][j] == grid[i][j])
+				if (i < 3 && g[i+1][j] == g[i][j])
 					return true;
-				if (j < 3 && grid[i][j+1] == grid[i][j])
+				if (j < 3 && g[i][j+1] == g[i][j])
 					return true;
 			}
 		}
 		return false;
+	}
+
+	public static int countBlank(int[][] g) {
+		int count = 0;
+		for (int i = 0; i < 4; i++) {
+			for (int j = 0; j < 4; j++) {
+				if(g[i][j] == 0)
+					count++;
+			}
+		}
+		return count;
 	}
 
 	public static void print(){
@@ -54,13 +65,29 @@ public class game2048 {
 			else
 				System.out.print(i + " ");
 		}
-		System.out.println("\n");
+		System.out.println();
+	}
+
+	public static void print(int[][] g){
+		for(int[] row: g){
+			print(row);
+		}
 	}
 
 	public static boolean isEqual(int[] a, int[] b){
 		for (int i = 0; i < 4; i++){
 			if(a[i] != b[i])
 				return false;
+		}
+		return true;
+	}
+
+	public static boolean isEqual(int[][] a, int[][] b){
+		for (int i = 0; i < 4; i++){
+			for (int j = 0; j < 4; j++){
+				if(a[i][j] != b[i][j])
+					return false;
+			}
 		}
 		return true;
 	}
@@ -77,129 +104,146 @@ public class game2048 {
 
 	// return true if move was succesful
 	public static boolean moveDown(){
-		boolean moved = false;
+		int[][] temp = testDown(grid);
+		boolean moved = !isEqual(grid, temp);
+		if(moved){
+			grid = temp;
+			placeRandom();
+		}
+		return moved;
+	}
 
+	public static int[][] testDown(int[][] g){
+		int[][] res =  new int[4][4];
 		for (int j = 0; j < 4; j++) {
 			int[] column = new int[4];
 			
 			int temp = 0;
 			for(int i = 3; i >= 0; i--){
-				if(grid[i][j] != 0){
-					if(temp > 0 && grid[i][j] == column[temp - 1]){
+				if(g[i][j] != 0){
+					if(temp > 0 && g[i][j] == column[temp - 1]){
 						column[temp - 1] *= 2; 
 					} else{
-						column[temp++] = grid[i][j];
+						column[temp++] = g[i][j];
 					}
 				}
 			}
 
 			temp = 3;
-			for(int[] row: grid){
-				if(row[j] != column[temp]){
-					row[j] = column[temp];
-					moved = true;
-				}
+			for(int[] row: res){
+				row[j] = column[temp];
 				temp--;
 			}
 		}
-		if(moved)
-			placeRandom();
-		return moved;
+		return res;
 	}
 
 	// return true if move was succesful
 	public static boolean moveUp(){
-		boolean moved = false;
+		int[][] temp = testUp(grid);
+		boolean moved = !isEqual(grid, temp);
+		if(moved){
+			grid = temp;
+			placeRandom();
+		}
+		return moved;
+	}
 
+	public static int[][] testUp(int[][] g){
+		int[][] res = new int[4][4];
 		for (int j = 0; j < 4; j++) {
 			int[] column = new int[4];
 
 			int temp = 0;
 			for(int i = 0; i < 4; i++){
-				if(grid[i][j] != 0){
-					if(temp > 0 && grid[i][j] == column[temp - 1]){
+				if(g[i][j] != 0){
+					if(temp > 0 && g[i][j] == column[temp - 1]){
 						column[temp - 1] *= 2; 
 					} else{
-						column[temp++] = grid[i][j];
+						column[temp++] = g[i][j];
 					}
 				}
 			}
 
-			//print(column);
-
 			temp = 0;
-			for(int[] row: grid) {
-				if(row[j] != column[temp]){
-					row[j] = column[temp];
-					moved = true;
-				}
+			for(int[] row: res) {
+				row[j] = column[temp];
 				temp++;
 			}
 		}
-		if(moved)
-			placeRandom();
-		return moved;
+		return res;
 	}
 
 	// return true if move was succesful
 	public static boolean moveRight(){
-		boolean moved = false;
+		int[][] temp = testRight(grid);
+		boolean moved = !isEqual(grid, temp);
+		if(moved){
+			grid = temp;
+			placeRandom();
+		}
+		return moved;
+	}
 
+	public static int[][] testRight(int[][] g){
+		int[][] res = new int[4][4];
 		for (int i = 0; i < 4; i++) {
 			int[] column = new int[4];
 
 			int temp = 3;
 			for(int j = 3; j >= 0; j--){
-				if(grid[i][j] != 0){
-					if(temp < 3 && grid[i][j] == column[temp + 1]){
+				if(g[i][j] != 0){
+					if(temp < 3 && g[i][j] == column[temp + 1]){
 						column[temp + 1] *= 2; 
 					} else{
-						column[temp--] = grid[i][j];
+						column[temp--] = g[i][j];
 					}
 				}
 			}
 
-			if(!isEqual(column, grid[i])){
-				moved = true;
-				grid[i] = column;
-			}
+			res[i] = column;
 		}
-		if(moved)
-			placeRandom();
-		return moved;
+		return res;
 	}
 
 	// return true if move was succesful
 	public static boolean moveLeft(){
-		boolean moved = false;
+		int[][] temp = testLeft(grid);
+		boolean moved = !isEqual(grid, temp);
+		if(moved){
+			grid = temp;
+			placeRandom();
+		}
+		return moved;
+	}
 
+	public static int[][] testLeft(int[][] g){
+		int[][] res = new int[4][4];
 		for (int i = 0; i < 4; i++) {
 			int[] column = new int[4];
-
 			int temp = 0;
 			for(int j = 0; j < 4; j++){
-				if(grid[i][j] != 0){
-					if(temp > 0 && grid[i][j] == column[temp - 1]){
+				if(g[i][j] != 0){
+					if(temp > 0 && g[i][j] == column[temp - 1]){
 						column[temp - 1] *= 2; 
 					} else{
-						column[temp++] = grid[i][j];
+						column[temp++] = g[i][j];
 					}
 				}
 			}
 
-			if(!isEqual(column, grid[i])){
-				moved = true;
-				grid[i] = column;
-			}
+			res[i] = column;
 		}
-		if(moved)
-			placeRandom();
-		return moved;
+		return res;
 	}
 
 	// places the block in a random location (inefficient, I know -_-)
 	public static void placeRandom(){
-		int value = rand.nextInt(2)  * 2 + 2;
+		int value = rand.nextInt(10);
+		if(value == 0)
+			value = 4;
+		else
+			value = 2;
 		boolean done = false;
 		while(!done){
 			int test1 = rand.nextInt(4);
@@ -210,5 +254,15 @@ public class game2048 {
 				return;
 			}
 		}
+	}
+
+	public static int[][] getGrid(){
+		int[][] res = new int[4][4];
+		for (int i = 0; i < 4; i++) {
+			for (int j = 0; j < 4; j++) {
+				res[i][j] = grid[i][j];
+			}
+		}
+		return res;
 	}
 }
