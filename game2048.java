@@ -55,7 +55,6 @@ public class game2048 {
 			}
 			System.out.println();
 		}
-		System.out.println("\n");
 	}
 
 	public static void print(int[] row){
@@ -92,9 +91,9 @@ public class game2048 {
 		return true;
 	}
 
-	public static int getMax(){
+	public static int getMax(int[][] g){
 		int max = 0;
-		for(int[] row : grid){
+		for(int[] row : g){
 			for(int i: row){
 				max = Math.max(max, i);
 			}
