@@ -46,15 +46,7 @@ public class game2048 {
 	}
 
 	public static void print(){
-		for (int[] row : grid) {
-			for (int i: row){
-				if(i == 0)
-					System.out.print("* ");
-				else
-					System.out.print(i + " ");
-			}
-			System.out.println();
-		}
+		print(getGrid());
 	}
 
 	public static void print(int[] row){
@@ -186,16 +178,19 @@ public class game2048 {
 
 	public static int[][] testRight(int[][] g){
 		int[][] res = new int[4][4];
+		boolean didone = false;
 		for (int i = 0; i < 4; i++) {
 			int[] column = new int[4];
 
 			int temp = 3;
 			for(int j = 3; j >= 0; j--){
 				if(g[i][j] != 0){
-					if(temp < 3 && g[i][j] == column[temp + 1]){
-						column[temp + 1] *= 2; 
+					if(temp < 3 && g[i][j] == column[temp + 1] && !didone){
+						column[temp + 1] *= 2;
+						didone = true;
 					} else{
 						column[temp--] = g[i][j];
+						didone = false;
 					}
 				}
 			}
