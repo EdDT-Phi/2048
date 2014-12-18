@@ -3,6 +3,7 @@ import java.util.*;
 public class test{
 	static game2048 game = new game2048();
 	static Random rand = new Random(System.currentTimeMillis());
+    static LinkedList<int[][]> moves = new LinkedList<int[][]>();
 
 	public static void main(String[] args) {
 		
@@ -10,30 +11,18 @@ public class test{
 		Scanner sc = new Scanner(System.in);
 
 		while(game.movesPossible(game.getGrid())) {
+			if(moves.size() > 1000)
+				moves.removeFirst();
+			AI.nextMove();
+			moves.addLast(game.getGrid());
+		}
 
-			String direction = AI.findBest(game.getGrid(), 4, args[0].equals("true"));
-			game.print();
+		for(int[][] g: moves){
+			game.print(g);
+/*			System.out.println("Down: " + AI.goodness(game.testDown(g)));
+			System.out.println("Right: " + AI.goodness(game.testRight(g)));
+			System.out.println("Left: " + AI.goodness(game.testLeft(g)));*/
 			System.out.println();
-			switch (direction){
-				case "down": // down
-					game.moveDown();
-					break;
-				case "right":
-					game.moveRight();
-					break;
-				case "left":
-					game.moveLeft();
-					break;
-				case "up":
-					game.moveUp();
-					break;
-			}
-			/*try{
-				Thread.sleep(500);
-			} catch (InterruptedException e){
-
-			}*/
-			sc.next();
 		}
 	}
 }
