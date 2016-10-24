@@ -2,114 +2,100 @@ public class AI {
 
 
     static game2048 game = new game2048();
-    static int moves = 5;
-    static double[] weights = { 4, 3, 0.4, 1.7};
+    static final int moves_ahead = 5;
+    static final double[] weights = { 4, 3, 0.4, 1.7};
+    static final int num_games = 10000;
+    static final int MOVE_NOT_POSSIBLE = -100000;
 
     public static void main(String[] args) {
-        //for (weights[0] = 0; weights[0] < 100; weights[0] += 10) {
-        //for(int times = 0; times < 3; times++){
-            int max = 0;
-            int min = 1000000;
-            int win = 0;
-            int[] distro = new int[6];
-            for (int i = 0; i < 1000; i++) {
-                boolean moved = false;
+        int max_achieved = 0;
+        // Would be great if this was the actual min
+        int min_achieved = 2048; 
+        int games_won = 0;
+        int[] distribution = new int[6];
+        for (int i = 0; i < num_games; i++) {
 
-                while (nextMove()) {
-                }
-
-                int thismax = game.getMax(game.getGrid());
-
-                if (thismax == 8192) {
-                    distro[5]++;
-                    win++;
-                } else if (thismax == 4096) {
-                    distro[4]++;
-                    win++;
-                } else if (thismax == 2048) {
-                    distro[3]++;
-                    win++;
-                } else if (thismax == 1024) {
-                    distro[2]++;
-                } else if (thismax == 512) {
-                    distro[1]++;
-                } else {
-                    distro[0]++;
-                }
-
-                max = Math.max(max, thismax);
-                min = Math.min(min, thismax);
-                game.newGame();
-
-                if (i % 300 == 0) {
-                    System.out.println(i);
-                }
-
+            while (nextMove()) {
             }
-            //System.out.println("Moves: " + moves);
-            System.out.println("Weight: " + weights[0]);
-            System.out.println("Max: " + max);
-            System.out.println("Won: " + win * 100 / 1000 + "%");
-            System.out.println("Distro:");
-            //System.out.println("\t8192 - " + distro[5]);
-            System.out.println("\t4096 - " + distro[4]);
-            System.out.println("\t2048 - " + distro[3]);
-            System.out.println("\t1024 - " + distro[2]);
-            System.out.println("\t512 - " + distro[1]);
-            System.out.println("\tother - " + distro[0]);
-            System.out.println();
+
+            int round_max = game.getMax(game.getGrid());
+            distribution[Math.max(0, log(round_max)-8)]++;
+            if(round_max >= 2048)    games_won++;
+            max_achieved = Math.max(max_achieved, round_max);
+            min_achieved = Math.min(min_achieved, round_max);
+            game.newGame();
+
+            if (i % 250 == 0) {
+                System.out.println(i);
+            }
         }
-    //}
+
+        System.out.println("Moves: " + moves_ahead);
+        System.out.println("Weights: " + weights);
+        System.out.println("Max: " + max_achieved);
+        System.out.println("Min: " + min_achieved);
+        System.out.println("Won: " + games_won * 100 / 1000 + "%");
+        System.out.println("Distribution:");
+        System.out.println("\t8192 - " + distribution[5]);
+        System.out.println("\t4096 - " + distribution[4]);
+        System.out.println("\t2048 - " + distribution[3]);
+        System.out.println("\t1024 - " + distribution[2]);
+        System.out.println("\t512 - " + distribution[1]);
+        System.out.println("\tother - " + distribution[0]);
+        System.out.println();
+    }
 
     public static boolean nextMove() {
-        String direction = findBest(game.getGrid(), moves, false);
+        String direction = findBest(game.getGrid(), moves);
         switch (direction) {
-        case "down": // down
-            return game.moveDown();
-        case "right":
-            return game.moveRight();
-        case "left":
-           return game.moveLeft();
-        case "up":
-            return game.moveUp();
+            case "down": return game.moveDown();
+            case "right": return game.moveRight();
+            case "left": return game.moveLeft();
+            case "up": return game.moveUp();
         }
-        game.print();
-        System.out.println(direction);
+        if(DEBUG){
+            game.print();
+            System.out.println(direction);
+        }
+
         return false;
     }
 
-    public static String findBest(int[][] grid, int i, boolean debug) {
-        int down = findMove(game.testDown(grid), i, grid, "Down", debug);
-        int left = findMove(game.testLeft(grid), i, grid, "Left", debug);
-        int right = findMove(game.testRight(grid), i, grid, "Right", debug);
+    public static String findBest(int[][] grid, int i) {
+        int down = findMove(game.testDown(grid), i, grid, "Down");
+        int left = findMove(game.testLeft(grid), i, grid, "Left");
+        int right = findMove(game.testRight(grid), i, grid, "Right");
 
-        if (debug) {
+        if (DEBUG) {
             System.out.println("Down: " + down);
             System.out.println("Right: " + right);
             System.out.println("Left: " + left);
         }
 
-        if (down != -3000 && down >= left && down >= right)
+        if (down != MOVE_NOT_POSSIBLE && down >= left && down >= right)
             return "down";
-        if (right != -3000 && right > left)
+        if (right != MOVE_NOT_POSSIBLE && right > left)
             return "right";
-        if (left != -3000)
+        if (left != MOVE_NOT_POSSIBLE)
             return "left";
+
+        // Ideally, never move up
         return "up";
     }
 
-    public static int findMove(int[][] grid, int i, int[][] oldGrid, String s, boolean debug) {
-        if (debug)
-            System.out.println("Debug here");
-        if (game.isEqual(grid, oldGrid) || !game.movesPossible(grid))
-            return (i == moves) ? -3000 : 0;
-        if (i == 0) {
+    public static int findMove(int[][] grid, int moves_left, int[][] oldGrid) {
+        if (moves_left == 0)
             return goodness(grid);
-        }
-        return  (int) (goodness(grid) + (Math.max(Math.max(
-                                             findMove(game.testDown(grid), i - 1, grid, s + ", Down", debug),
-                                             findMove(game.testLeft(grid), i - 1, grid, s + ", Left", debug)),
-                                         findMove(game.testRight(grid), i - 1, grid, s + ", Right", debug))) / weights[3]);
+        // Move not possible
+        if (game.isEqual(grid, oldGrid) || !game.movesPossible(grid))
+            return (moves_left == moves) ? MOVE_NOT_POSSIBLE : 0;
+
+        // Get the best possible outcome, might want to exchange for
+        // sum of goodness of possible boards
+        int max_goodnes = Math.max( findMove(game.testDown(grid), moves_left - 1, grid),
+                                    findMove(game.testLeft(grid), moves_left - 1, grid));
+        max_goodnes = Math.max(findMove(game.testRight(grid), moves_left - 1, grid), max_goodnes);
+        return  (int) (goodness(grid) + max_goodnes / weights[3]);
     }
 
     // More goodness is better
@@ -199,5 +185,10 @@ public class AI {
         	}
         }
         return sum;
+    }
+
+    public static int log(int num){
+        if(i <= 2) return 1;
+        return 1 + log(num/2);
     }
 }
