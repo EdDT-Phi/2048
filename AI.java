@@ -1,11 +1,12 @@
 public class AI {
 
 
-    static game2048 game = new game2048();
-    static final int moves_ahead = 5;
-    static final double[] weights = { 4, 3, 0.4, 1.7};
-    static final int num_games = 10000;
+    static Game2048 game = new Game2048();
+    static final int MOVES_AHEAD = 5;
+    static final double[] weights = {4, 3, 0.4, 1.7};
+    static final int NUM_GAMES = 10000;
     static final int MOVE_NOT_POSSIBLE = -100000;
+    static final boolean DEBUG = false; 
 
     public static void main(String[] args) {
         int max_achieved = 0;
@@ -13,40 +14,40 @@ public class AI {
         int min_achieved = 2048; 
         int games_won = 0;
         int[] distribution = new int[6];
-        for (int i = 0; i < num_games; i++) {
+        for (int i = 0; i < NUM_GAMES; i++) {
+            game.newGame();
 
+            // returns false when a move can't be made
             while (nextMove()) {
             }
 
-            int round_max = game.getMax(game.getGrid());
+            int round_max = game.getMax(game.getBoard());
             distribution[Math.max(0, log(round_max)-8)]++;
             if(round_max >= 2048)    games_won++;
             max_achieved = Math.max(max_achieved, round_max);
             min_achieved = Math.min(min_achieved, round_max);
-            game.newGame();
 
-            if (i % 250 == 0) {
-                System.out.println(i);
+            if (i % (NUM_GAMES/10) == 0) {
+                System.out.println((i * 100) / NUM_GAMES + "%");
             }
         }
 
-        System.out.println("Moves: " + moves_ahead);
+        System.out.println("Sight: " + MOVES_AHEAD);
         System.out.println("Weights: " + weights);
         System.out.println("Max: " + max_achieved);
         System.out.println("Min: " + min_achieved);
-        System.out.println("Won: " + games_won * 100 / 1000 + "%");
+        System.out.println("Won: " + games_won * 100 / NUM_GAMES + "%");
         System.out.println("Distribution:");
-        System.out.println("\t8192 - " + distribution[5]);
-        System.out.println("\t4096 - " + distribution[4]);
-        System.out.println("\t2048 - " + distribution[3]);
-        System.out.println("\t1024 - " + distribution[2]);
-        System.out.println("\t512 - " + distribution[1]);
+        System.out.println("\t8192 - "  + distribution[5]);
+        System.out.println("\t4096 - "  + distribution[4]);
+        System.out.println("\t2048 - "  + distribution[3]);
+        System.out.println("\t1024 - "  + distribution[2]);
+        System.out.println("\t512 - "   + distribution[1]);
         System.out.println("\tother - " + distribution[0]);
-        System.out.println();
     }
 
     public static boolean nextMove() {
-        String direction = findBest(game.getGrid(), moves);
+        String direction = findBest(game.getBoard(), MOVES_AHEAD);
         switch (direction) {
             case "down": return game.moveDown();
             case "right": return game.moveRight();
@@ -61,10 +62,10 @@ public class AI {
         return false;
     }
 
-    public static String findBest(int[][] grid, int i) {
-        int down = findMove(game.testDown(grid), i, grid, "Down");
-        int left = findMove(game.testLeft(grid), i, grid, "Left");
-        int right = findMove(game.testRight(grid), i, grid, "Right");
+    public static String findBest(int[][] board, int i) {
+        int down = findMove(game.testDown(board), i, board);
+        int left = findMove(game.testLeft(board), i, board);
+        int right = findMove(game.testRight(board), i, board);
 
         if (DEBUG) {
             System.out.println("Down: " + down);
@@ -83,112 +84,119 @@ public class AI {
         return "up";
     }
 
-    public static int findMove(int[][] grid, int moves_left, int[][] oldGrid) {
+    public static int findMove(int[][] board, int moves_left, int[][] old_board) {
         if (moves_left == 0)
-            return goodness(grid);
+            return goodness(board);
         // Move not possible
-        if (game.isEqual(grid, oldGrid) || !game.movesPossible(grid))
-            return (moves_left == moves) ? MOVE_NOT_POSSIBLE : 0;
+        if (game.isEqual(board, old_board) || !game.movesPossible(board))
+            return (moves_left == MOVES_AHEAD) ? MOVE_NOT_POSSIBLE : 0;
 
         // Get the best possible outcome, might want to exchange for
         // sum of goodness of possible boards
-        int max_goodnes = Math.max( findMove(game.testDown(grid), moves_left - 1, grid),
-                                    findMove(game.testLeft(grid), moves_left - 1, grid));
-        max_goodnes = Math.max(findMove(game.testRight(grid), moves_left - 1, grid), max_goodnes);
-        return  (int) (goodness(grid) + max_goodnes / weights[3]);
+        int max_goodnes = Math.max( findMove(game.testDown(board), moves_left - 1, board),
+                                    findMove(game.testLeft(board), moves_left - 1, board));
+        max_goodnes = Math.max(findMove(game.testRight(board), moves_left - 1, board), max_goodnes);
+        return  (int) (goodness(board) + max_goodnes / weights[3]);
     }
 
-    // More goodness is better
-    public static int goodness(int[][] grid) {
-        return (getScore(grid)
-                + scoreCorner(grid));
+    // More goodness is better, currently two measures of goodness
+    public static int goodness(int[][] board) {
+        return (getScore(board)
+                + scoreCorner(board));
     }
 
-    public static int getScore(int[][] g) {
-        boolean foundCulprit = false;
+    // General score assesment. Combines several other assesments
+    public static int getScore(int[][] board) {
+        
+        // only one blank tile means random could prevent moving left and right
+        boolean one_blank_tile = false;
+
         int sum = 0;
         double mult = 1;
         for (int i = 0; i < 4; i++) {
-            int blankBoxes = 0;
+            int blank_tiles = 0;
             for (int j = 0; j < 4; j++) {
 
-                // check for big tiles
-                sum += g[i][j] / Math.abs(i - 4);
+                // check for big tiles, lower is better
+                sum += board[i][j] / (4 - i);
 
                 // check for high above low
-                if (i > 0 && g[i][j] < g[i - 1][j]) {
+                if (i > 0 && board[i][j] < board[i - 1][j]) {
                     sum -= weights[0];
                 }
 
                 // count blank tiles
-                if (g[i][j] == 0) {
-                    blankBoxes ++;
+                if (board[i][j] == 0) {
+                    blank_tiles ++;
                 }
             }
 
             // check for only up probability
-            if (foundCulprit && blankBoxes != 0) {
-                mult = weights[1]; // better score
-            } else if (!foundCulprit && blankBoxes < 4) {
-                if (blankBoxes == 1) {
-                    foundCulprit = true;
+            if (one_blank_tile && blank_tiles != 0) {
+                mult = weights[1];
+            } else if (!one_blank_tile && blank_tiles < 4) {
+                if (blank_tiles == 1) {
+                    one_blank_tile = true;
                 } else {
-                    mult = weights[1]; // better score
+                    mult = weights[1];
                 }
             }
         }
         return (int) (sum * mult);
     }
 
-    public static int scoreLow(int[][] g) {
-        int sum = 0;
-        for (int i = 1; i < 4; i++) {
-            for (int j = 0; j < 4; j++) {
-                if (g[i][j] < g[i - 1][j]) {
-                    sum -= 4;
-                }
-            }
-        }
-        return sum;
+    // This reduces score if there is a tile lower than the tile above it
+    // public static int scoreLow(int[][] g) {
+    //     int sum = 0;
+    //     for (int i = 1; i < 4; i++) {
+    //         for (int j = 0; j < 4; j++) {
+    //             if (board[i][j] < board[i - 1][j]) {
+    //                 sum -= 4;
+    //             }
+    //         }
+    //     }
+    //     return sum;
+    // }
+
+    // Tests that the game has maintained higher tiles in either corner
+    public static int scoreCorner(int[][] board) {
+    	return (int)	(Math.max(rowScoreL(3, board), rowScoreR(3, board)) * weights[2]);
     }
 
-    public static int scoreCorner(int[][] g) {
-    	return (int)	(Math.max(rowScoreL(3, g), rowScoreR(3, g)) * weights[2]); //+
-    			//Math.max(rowScoreL(2, g), rowScoreR(2, g)));
-    }
+    // public static int scoreCorner(int[][] board) {
+    //     if (board[3][0] > board[3][3])
+    //         return board[3][0] - board[3][3] + (int)(board[3][1] / 1.5);
+    //     return board[3][3] - board[3][0] + (int)(board[3][2] / 1.5);
+    // }
 
-    //public static int scoreCorner(int[][] g) {
-/*        if (g[3][0] > g[3][3])
-            return g[3][0] - g[3][3] + (int)(g[3][1] / 1.5);
-        return g[3][3] - g[3][0] + (int)(g[3][2] / 1.5);
-    }*/
-
-    public static int rowScoreL(int i, int[][] g){
-    	int sum = g[i][0];
+    // Score of the ith row, from left to right
+    public static int rowScoreL(int i, int[][] board){
+    	int sum = board[i][0];
         for(int j = 0; j < 2; j ++) {
-        	if (g[i][j]/2 == g[i][j+1]) {
-        		sum += g[i][j] * weights[2];
+        	if (board[i][j]/2 == board[i][j+1]) {
+        		sum += board[i][j] * weights[2];
         	} else {
-        		sum += g[i][j];
+        		sum += board[i][j];
         	}
         }
         return sum;
     }
 
-    public static int rowScoreR(int i, int[][] g){
-    	int sum = g[i][3];
+    // Score of the ith row, from right to left
+    public static int rowScoreR(int i, int[][] board){
+    	int sum = board[i][3];
         for(int j = 3; j > 0; j --) {
-        	if (g[i][j]/2 == g[i][j-1]) {
-        		sum += g[i][j] * 2;
+        	if (board[i][j]/2 == board[i][j-1]) {
+        		sum += board[i][j] * 2;
         	} else {
-        		sum += g[i][j];
+        		sum += board[i][j];
         	}
         }
         return sum;
     }
 
     public static int log(int num){
-        if(i <= 2) return 1;
+        if(num <= 2) return 1;
         return 1 + log(num/2);
     }
 }

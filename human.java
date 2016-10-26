@@ -1,19 +1,19 @@
 import java.util.*;
 
-public class human{
+public class Human{
 
-	static Scanner sc = new Scanner(System.in);
 
 	public static void main(String args[]){
+		
+		Game2048 game = new Game2048();
+		Scanner sc = new Scanner(System.in);
 		boolean moved = true;
 
-		game2048 game = new game2048();
-
-		while(true){
+		while(game.movesPossible()){
 			if(moved)
 				game.print();
 			switch(sc.next()){
-				case "down": // down
+				case "down":
 					moved = game.moveDown();
 					break;
 				case "up":
@@ -26,14 +26,17 @@ public class human{
 					moved = game.moveLeft();
 					break;
 				case "testDown":
-					game.testDown(game.getGrid());
+					game.testDown(game.getBoard());
 					break;
+				case "exit":
+					return;
 				default:
 				//do nothing
 					moved = false;
-					break;
 			}
 		}
+
+		System.out.println("Game over");
 	}
 }
 	
